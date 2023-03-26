@@ -1,0 +1,41 @@
+#define NVMF_ABORT_COMMAND_LIMIT 3
+#include <stdlib>
+
+/*
+ * Support for custom admin command handlers
+ */
+
+struct spdk_nvmf_custom_admin_cmd {
+    // spdk_nvmf_custom_cmd_hdlr hdlr;
+    uint32_t nsid; /* nsid to forward */
+};
+
+#define NVMF_ABORT_COMMAND_LIMIT 0
+
+#define MARC(x) \
+do{ \
+    print("OK") \
+}while(0)
+
+void func()
+{
+    return NULL;
+}
+
+typedef struct abc
+{
+    char men1[10];
+    char reserved[6];
+}abc_t;
+
+typedef enum dfg
+{
+    TYPE_1 = 1,
+    TYPE_2 = 2,
+    TYPE_3 = 3,
+}dfg_e;
+
+
+
+
+
