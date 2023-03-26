@@ -39,3 +39,9 @@ class ReTool:
             res = res[:-1]
         res = cls.remove_space(res, flag=2)
         return res
+
+    # 获取第一个空格后面的内容
+    @classmethod
+    def get_content_after_first_space(cls, text_line):
+        assert " " in text_line, "find no space in %s" % (text_line, )
+        return re.search(r"(?<=\s)(\S|$).*", text_line).group()

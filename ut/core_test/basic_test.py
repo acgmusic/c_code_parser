@@ -4,9 +4,8 @@ from c_code_parser.utils.ut_tools import *
 
 class TestBasicParser(BasicParser):
     def __init__(self):
-        with open(f"./data/example01.txt", 'r', encoding="utf-8") as f:
-            text = f.read()
-        super(TestBasicParser, self).__init__(text)
+        fp = "./data/example01.txt"
+        super(TestBasicParser, self).__init__(fp)
 
         # ut_cases
         self.ut_cases = [
@@ -16,6 +15,7 @@ class TestBasicParser(BasicParser):
             self.test_get_parse_res_list_case_04,
             self.test_get_char_pos_case_01,
             self.test_parse_define_case_01,
+            self.test_parse_preprocessor_case_01,
             self.test_parse_parse_all_case_01,
         ]
 
@@ -52,6 +52,20 @@ class TestBasicParser(BasicParser):
 
         test_txt = "#define ABC(x, y) 123"
         res = self.parse_define(test_txt)
+        print(res)
+
+    @UtClassTestTool()
+    def test_parse_preprocessor_case_01(self):
+        test_txt = "#include <stdlib>"
+        res = self.parse_preprocessor(test_txt)
+        print(res)
+
+        test_txt = '#include "../core/file.h"'
+        res = self.parse_preprocessor(test_txt)
+        print(res)
+
+        test_txt = '#ifdef ABC'
+        res = self.parse_preprocessor(test_txt)
         print(res)
 
     @UtClassTestTool()

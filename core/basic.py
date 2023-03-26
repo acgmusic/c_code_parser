@@ -13,7 +13,10 @@ class RgxPattern(Enum):
 
 
 class BasicParser:
-    def __init__(self, text):
+    def __init__(self, fp):
+        with open(fp, 'r', encoding="utf-8") as f:
+            text = f.read()
+        self.fp = fp
         self.text = text
         self.text_split = self.text.split("\n")
         self.char_num_list = [len(line)+1 for line in self.text_split]
@@ -58,7 +61,7 @@ class BasicParser:
         if not value:
             logger.error("this is not a define code line: %s" % (txt, ))
             return None
-        info = {'name': name, 'args': [], 'value': value, 'full_text': txt}
+        info = {'name': name, 'args': [], 'value': value}
         # 如果是宏定义函数
         if len(txt_used) > right_pos and txt_used[right_pos] == '(':
             args_info_re = re.search(r".*?(?=\))", txt_used[right_pos+1:])
@@ -71,21 +74,58 @@ class BasicParser:
     @staticmethod
     def parse_preprocessor(txt):
         txt = ReTool.remove_space(txt, flag=4)
-        if not txt or txt[0] != "#":
+        if (not txt) or txt[0] != "#":
             logger.error("invalid preprocessor: %s" % (txt, ))
             return None
         # 只需解析include
-        if re.search(r"#include", txt) is None:
+        if txt[:8] == "#include":
+            path = txt.split(" ")[-1]
+            path = re.sub(r"\"", "", path)
+            return {"type": "include", "path": path, "value": ""}
+        else:
+            type_name = re.search(r"^\w+", txt[1:]).group()
+            value = ReTool.get_content_after_first_space(txt)
+            return {"type": type_name, "path": "", "value": value}
 
+    # 解析note信息
+    @staticmethod
+    def parse_note(txt):
+        return {}
 
     # 将基础代码分离，并返回基础代码的信息
     def parse_all(self):
-        parse_res = {}
+        parse_res = {
+            "define": [],
+            "preprocessor": [],
+            "note": [],
+        }
+
+        ptn_handle_map = {
+            RgxPattern.DEFINE: self.parse_define,
+            RgxPattern.PREPROCESSOR: self.parse_preprocessor,
+            RgxPattern.NOTE_TYPE_1: self.parse_note,
+            RgxPattern.NOTE_TYPE_2: self.parse_note,
+        }
+
+        ptn_name_map = {
+            RgxPattern.DEFINE: "define",
+            RgxPattern.PREPROCESSOR: "preprocessor",
+            RgxPattern.NOTE_TYPE_1: "note",
+            RgxPattern.NOTE_TYPE_2: "note",
+        }
+
         for ptn in RgxPattern:
             for search_res in self.get_parse_res_iter(ptn):
-                info = {
-
+                line_parse_info = ptn_handle_map[ptn](search_res.group())
+                (pos_start, pos_end) = search_res.span()
+                detail = {
+                    "file_path": self.fp,
+                    "pos": (self.get_char_pos(pos_start), self.get_char_pos(pos_end)),
+                    "full_text": search_res.group(),
+                    "info": line_parse_info,
                 }
+                parse_res[ptn_name_map[ptn]].append(detail)
+        return parse_res
 
 
 if __name__ == '__main__':
