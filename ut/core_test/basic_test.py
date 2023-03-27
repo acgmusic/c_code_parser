@@ -1,5 +1,6 @@
 from c_code_parser.core.basic import *
 from c_code_parser.utils.ut_tools import *
+from c_code_parser.utils.common_tool import *
 
 
 class TestBasicParser(BasicParser):
@@ -71,4 +72,4 @@ class TestBasicParser(BasicParser):
     @UtClassTestTool()
     def test_parse_parse_all_case_01(self):
         res = self.parse_all()
-        print(res)
+        CmTool.pretty_print_dict(res)

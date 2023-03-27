@@ -1,4 +1,4 @@
-#define NVMF_ABORT_COMMAND_LIMIT 3
+#define NVMF_ABORT_COMMAND_LIMIT 3  // fafsaf
 #include <stdlib>
 
 /*
@@ -35,7 +35,9 @@ typedef enum dfg
     TYPE_3 = 3,
 }dfg_e;
 
+#endif
 
+#else
 
 
 

@@ -45,3 +45,33 @@ class ReTool:
     def get_content_after_first_space(cls, text_line):
         assert " " in text_line, "find no space in %s" % (text_line, )
         return re.search(r"(?<=\s)(\S|$).*", text_line).group()
+
+    # 判断字符串开头，是否在目标列表中
+    @classmethod
+    def is_prefixed_with(cls, text_line, prefix_lit):
+        if type(prefix_lit) is not list:
+            prefix_lit = [prefix_lit]
+        for pref in prefix_lit:
+            if text_line[:len(pref)] == pref:
+                return True
+        return False
+
+    # 输入pos_start, pos_end，将对应区间内的文本全部换为空格
+    @classmethod
+    def reset_txt_btw_pos_range(cls, text, pos_start, pos_end):
+        text_split = text.split("\n")
+        if pos_start[0] == pos_end[0]:
+            tmp = text_split[pos_start[0]]
+            text_split[pos_start[0]] = tmp[:pos_start[1]] + " " * (pos_end[1] - pos_start[1]) + tmp[pos_end[1]:]
+        else:
+            for row in range(pos_start[0], pos_end[0]+1):
+                tmp = text_split[row]
+                if row == pos_start[0]:
+                    text_split[row] = tmp[:pos_start[1]] + " " * (len(text_split[row]) - pos_start[1])
+                elif row == pos_end[0]:
+                    text_split[row] = " " * pos_end[1] + tmp[pos_end[1]:]
+                else:
+                    text_split[row] = " " * len(text_split[row])
+        return "\n".join(text_split)
+
+

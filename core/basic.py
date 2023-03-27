@@ -78,19 +78,44 @@ class BasicParser:
             logger.error("invalid preprocessor: %s" % (txt, ))
             return None
         # 只需解析include
-        if txt[:8] == "#include":
+        if ReTool.is_prefixed_with(txt, "#inclide"):
             path = txt.split(" ")[-1]
             path = re.sub(r"\"", "", path)
             return {"type": "include", "path": path, "value": ""}
         else:
             type_name = re.search(r"^\w+", txt[1:]).group()
-            value = ReTool.get_content_after_first_space(txt)
+            if ReTool.is_prefixed_with(txt, ["#endif", "#else", ]):
+                value = ""
+            else:
+                value = ReTool.get_content_after_first_space(txt)
             return {"type": type_name, "path": "", "value": value}
 
     # 解析note信息
     @staticmethod
     def parse_note(txt):
         return {}
+
+    # 寻找一种ptn，并返回搜索结果
+    def parse_one_ptn_from_all_txt(self, ptn):
+        ptn_handle_map = {
+            RgxPattern.DEFINE: self.parse_define,
+            RgxPattern.PREPROCESSOR: self.parse_preprocessor,
+            RgxPattern.NOTE_TYPE_1: self.parse_note,
+            RgxPattern.NOTE_TYPE_2: self.parse_note,
+        }
+
+        res = []
+        for search_res in self.get_parse_res_iter(ptn):
+            line_parse_info = ptn_handle_map[ptn](search_res.group())
+            (pos_start, pos_end) = search_res.span()
+            detail = {
+                "file_path": self.fp,
+                "pos": (self.get_char_pos(pos_start), self.get_char_pos(pos_end)),
+                "full_text": search_res.group(),
+                "info": line_parse_info,
+            }
+            res.append(detail)
+        return res
 
     # 将基础代码分离，并返回基础代码的信息
     def parse_all(self):
@@ -100,13 +125,6 @@ class BasicParser:
             "note": [],
         }
 
-        ptn_handle_map = {
-            RgxPattern.DEFINE: self.parse_define,
-            RgxPattern.PREPROCESSOR: self.parse_preprocessor,
-            RgxPattern.NOTE_TYPE_1: self.parse_note,
-            RgxPattern.NOTE_TYPE_2: self.parse_note,
-        }
-
         ptn_name_map = {
             RgxPattern.DEFINE: "define",
             RgxPattern.PREPROCESSOR: "preprocessor",
@@ -114,17 +132,24 @@ class BasicParser:
             RgxPattern.NOTE_TYPE_2: "note",
         }
 
+        prehandle_ptn_list = [RgxPattern.NOTE_TYPE_1, RgxPattern.NOTE_TYPE_2]
+
+        # 先处理note，同时把note从源文件中移除
+        for ptn in prehandle_ptn_list:
+            search_info_list = self.parse_one_ptn_from_all_txt(ptn)
+            parse_res[ptn_name_map[ptn]] = search_info_list
+
+        text_backup = self.text
+        for ptn in prehandle_ptn_list:
+            for search_info in parse_res[ptn_name_map[ptn]]:
+                self.text = ReTool.reset_txt_btw_pos_range(self.text, *search_info["pos"])
+
         for ptn in RgxPattern:
-            for search_res in self.get_parse_res_iter(ptn):
-                line_parse_info = ptn_handle_map[ptn](search_res.group())
-                (pos_start, pos_end) = search_res.span()
-                detail = {
-                    "file_path": self.fp,
-                    "pos": (self.get_char_pos(pos_start), self.get_char_pos(pos_end)),
-                    "full_text": search_res.group(),
-                    "info": line_parse_info,
-                }
-                parse_res[ptn_name_map[ptn]].append(detail)
+            if ptn in prehandle_ptn_list:
+                continue
+            parse_res[ptn_name_map[ptn]] = self.parse_one_ptn_from_all_txt(ptn)
+
+        self.text = text_backup
         return parse_res
 
 
